@@ -1,0 +1,20 @@
+{
+    "name": "mariomogge/checkin-app-plain",
+    "description": "Simple check-in and booking app in PHP 8.4",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mario Mogge",
+            "email": "mario.mogge@gmx.de"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "firebase/php-jwt": "dev-main"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    }
+}
