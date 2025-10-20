@@ -11,13 +11,19 @@ class UserRepository
 {
     public function findById(int $id): ?User
     {
-        $stmt = Database::getConnection()->prepare("SELECT * FROM users WHERE id = ?");
-        $stmt->execute([$id]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt = Database::getConnection()->prepare("SELECT * FROM users WHERE id = :id");
+        $stmt->execute(['id' => $id]);
 
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) return null;
 
-        return new User($row['id'], $row['name'], (bool)$row['checked_in']);
+        return new User(
+            id: $row['id'],
+            name: $row['name'],
+            checkedIn: $row['checkedIn'],
+            password: $row['password'],
+            role: $row['role']
+        );
     }
 
     public function markAsCheckedIn(int $userId): void

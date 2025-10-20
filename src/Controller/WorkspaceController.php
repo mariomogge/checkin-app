@@ -49,9 +49,9 @@ class WorkspaceController
     public function getUser(int $userId): void
     {
         try {
-            $userService = new UserService();
-            $lastCheckIn = $userService->getLastCheckIn($userId);
-            $user = $userService->getUserById($userId);
+            $userRepo = new \App\Repository\UserRepository();
+            $user = $userRepo->findById($userId);
+            $lastCheckIn = (new UserService())->getLastCheckIn($userId);
 
             if (!$user) {
                 JsonResponse::error('User not found', 404);

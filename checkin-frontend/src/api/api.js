@@ -22,6 +22,7 @@ export default {
   checkOut: userId => instance.post('/checkout', { userId }),
   book: (userId, deskId) => instance.post('/book', { userId, deskId }),
   getDesks: () => instance.get('/desks'),
-  getBookings: () => instance.get('/admin/bookings'),
+  getUser: (id) => instance.get(`/user/${id}`),
+  getAdminBookings: () => instance.get('/admin/bookings'),
   getActiveBooking: userId => instance.get(`/booking/active/${userId}`)
 }
