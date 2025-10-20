@@ -2,7 +2,7 @@
 
 return [
     'db' => [
-        'host' => getenv('DB_HOST') ?: 'mysql-db',
+        'host' => getenv('DB_HOST') ?: 'checkin_mysql',
         'port' => getenv('DB_PORT') ?: '3306',
         'name' => getenv('DB_NAME') ?: 'checkin_db',
         'user' => getenv('DB_USER') ?: 'root',
