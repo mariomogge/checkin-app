@@ -3,6 +3,7 @@
 namespace App\Middleware;
 
 use App\Service\AuthService;
+use App\Support\Request;
 use Exception;
 
 class AuthMiddleware
@@ -11,22 +12,22 @@ class AuthMiddleware
         private AuthService $authService = new AuthService()
     ) {}
 
-    public function requireAuth(string $requiredRole = 'user'): ?object
+    public function requireAuth(?string $requiredRole = null): object
     {
         $headers = getallheaders();
-        $token = $headers['Authorization'] ?? '';
+        $authHeader = $headers['Authorization'] ?? '';
 
-        if (!str_starts_with($token, 'Bearer ')) {
-            throw new Exception("Missing or invalid token");
+        if (!str_starts_with($authHeader, 'Bearer ')) {
+            throw new Exception("Unauthorized: Missing token");
         }
 
-        $token = str_replace('Bearer ', '', $token);
+        $token = substr($authHeader, 7);
         $payload = $this->authService->verifyToken($token);
 
-        if ($requiredRole === 'admin' && $payload->role !== 'admin') {
-            throw new Exception("Forbidden – admin only");
+        if ($requiredRole && ($payload->role !== $requiredRole)) {
+            throw new Exception("Forbidden: Insufficient role");
         }
 
-        return $payload;
+        return $payload; // enthält userId & Rolle
     }
 }

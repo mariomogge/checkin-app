@@ -2,44 +2,41 @@
 
 namespace App\Service;
 
-use App\Repository\BookingRepository;
+use App\Contract\BookingRepositoryInterface;
 use App\Repository\DeskRepository;
 use DateTime;
 use Exception;
 
 class DeskBookingService
 {
-    private BookingRepository $bookingRepo;
+    private BookingRepositoryInterface $bookingRepo;
     private DeskRepository $deskRepo;
 
-    public function __construct()
-    {
-        $this->bookingRepo = new BookingRepository();
-        $this->deskRepo = new DeskRepository();
+    public function __construct(
+        BookingRepositoryInterface $bookingRepo,
+        DeskRepository $deskRepo
+    ) {
+        $this->bookingRepo = $bookingRepo;
+        $this->deskRepo = $deskRepo;
     }
 
-    public function book(int $userId, int $deskId): void
+    public function book(int $userId, int $deskId, ?DateTime $start = null, ?DateTime $end = null): void
     {
-        $now = new DateTime();
-        $end = (clone $now)->modify('+8 hours');
+        $start = $start ?? new DateTime();
+        $end   = $end   ?? (clone $start)->modify('+8 hours');
 
-        // 1. Prüfen ob Platz existiert
         if (!$this->deskRepo->exists($deskId)) {
             throw new Exception("Desk not found");
         }
 
-        // 2. Prüfen ob Platz in diesem Zeitraum frei ist
-        if (!$this->bookingRepo->isDeskAvailableInPeriod($deskId, $now, $end)) {
-            throw new Exception("Desk is not available in this time period");
+        if (!$this->bookingRepo->isDeskAvailableInPeriod($deskId, $start, $end)) {
+            throw new Exception("Desk is not available");
         }
 
-        // 3. Prüfen ob User bereits aktive Buchung hat
-        $activeBooking = $this->bookingRepo->getActiveBookingForUser($userId);
-        if ($activeBooking) {
+        if ($this->bookingRepo->getActiveBookingForUser($userId)) {
             throw new Exception("User already has an active booking");
         }
 
-        // 4. Buchung speichern
-        $this->bookingRepo->createBooking($userId, $deskId, $now, $end);
+        $this->bookingRepo->createBooking($userId, $deskId, $start, $end);
     }
 }

@@ -3,173 +3,156 @@
 namespace App\Controller;
 
 use App\Service\CheckInService;
-use App\Service\DeskBookingService;
 use App\Service\CheckOutService;
+use App\Service\DeskBookingService;
 use App\Service\AuthService;
+use App\Service\UserService;
 use App\Repository\DeskRepository;
 use App\Repository\BookingRepository;
+use App\Support\Request;
+use App\Support\JsonResponse;
 use App\Middleware\AuthMiddleware;
 use Exception;
-use DateTime;
 
 class WorkspaceController
 {
-    private CheckInService $checkInService;
-    private DeskBookingService $bookingService;
-    private DeskRepository $deskRepo;
-    private AuthMiddleware $authMiddleware;
-    private AuthService $authService;
-    private CheckOutService $checkOutService;
-
-    public function __construct()
-    {
-        $this->checkInService   = new CheckInService();
-        $this->bookingService   = new DeskBookingService();
-        $this->deskRepo         = new DeskRepository();
-        $this->authMiddleware   = new AuthMiddleware();
-        $this->authService      = new AuthService();
-        $this->checkOutService  = new CheckOutService();
-
-        header('Content-Type: application/json'); // Standard-Header
+    public function __construct(
+        private CheckInService $checkInService = new CheckInService(),
+        private CheckOutService $checkOutService = new CheckOutService(),
+        private DeskBookingService $bookingService = new DeskBookingService(
+            new BookingRepository(),
+            new DeskRepository()
+        ),
+        private DeskRepository $deskRepo = new DeskRepository(),
+        private BookingRepository $bookingRepo = new BookingRepository(),
+        private AuthService $authService = new AuthService()
+    ) {
+        header('Content-Type: application/json');
     }
 
     public function login(): void
     {
-        $data = json_decode(file_get_contents("php://input"), true);
+        $data = Request::json();
         $name = $data['name'] ?? null;
         $password = $data['password'] ?? null;
 
         try {
             $token = $this->authService->login($name, $password);
-            echo json_encode(['token' => $token]);
+            JsonResponse::success(['token' => $token]);
         } catch (Exception $e) {
-            http_response_code(401);
-            echo json_encode(['error' => $e->getMessage()]);
+            JsonResponse::error($e->getMessage(), 401);
         }
     }
 
     public function checkIn(): void
     {
-        $data = json_decode(file_get_contents("php://input"), true);
+        $data = Request::json();
         $userId = $data['userId'] ?? null;
 
         if (!$userId) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Missing userId']);
+            JsonResponse::error('Missing userId', 400);
             return;
         }
 
         try {
-            $this->checkInService->checkInUser($userId);
-            echo json_encode(['status' => 'Checked in']);
+            (new UserService())->checkIn($userId);
+            JsonResponse::success(['status' => 'Checked in']);
         } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            JsonResponse::error($e->getMessage(), 500);
         }
     }
-
 
     public function checkOut(): void
     {
-        $data = json_decode(file_get_contents("php://input"), true);
+        $data = Request::json();
         $userId = $data['userId'] ?? null;
 
         if (!$userId) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Missing userId']);
+            JsonResponse::error('Missing userId', 400);
             return;
         }
 
         try {
-            $this->checkOutService->checkOut($userId);
-            echo json_encode(['status' => 'Checked out']);
+            (new UserService())->checkOut($userId);
+            JsonResponse::success(['status' => 'Checked out']);
         } catch (Exception $e) {
-            http_response_code(400);
-            echo json_encode(['error' => $e->getMessage()]);
+            JsonResponse::error($e->getMessage(), 400);
         }
     }
 
+
     public function book(): void
     {
-        $data = json_decode(file_get_contents("php://input"), true);
+        $data = Request::json();
+        $userId = $data['userId'] ?? null;
+        $deskId = $data['deskId'] ?? null;
 
-        $userId  = $data['userId'] ?? null;
-        $deskId  = $data['deskId'] ?? null;
-        $start   = $data['start'] ?? null;
-        $end     = $data['end'] ?? null;
-
-        if (!$userId || !$deskId || !$start) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Missing userId, deskId or start']);
+        if (!$userId || !$deskId) {
+            JsonResponse::error('Missing userId or deskId', 400);
             return;
         }
 
         try {
-            $startTime = new DateTime($start);
-            $endTime   = $end ? new DateTime($end) : null;
-
             $this->bookingService->book($userId, $deskId);
-
-            echo json_encode(['status' => 'Desk booked']);
+            JsonResponse::success(['status' => 'Desk booked']);
         } catch (Exception $e) {
-            http_response_code(400);
-            echo json_encode(['error' => $e->getMessage()]);
+            JsonResponse::error($e->getMessage());
         }
     }
 
     public function availableDesks(): void
     {
-        $desks = $this->deskRepo->getAvailableDesks();
-
-        $response = array_map(fn($desk) => [
-            'id'       => $desk->id,
-            'location' => $desk->location,
-        ], $desks);
-
-        echo json_encode($response);
+        try {
+            $desks = $this->deskRepo->getAvailableDesks();
+            $response = array_map(fn($desk) => [
+                'id'       => $desk->id,
+                'location' => $desk->location,
+            ], $desks);
+            JsonResponse::success($response);
+        } catch (Exception $e) {
+            JsonResponse::error($e->getMessage(), 500);
+        }
     }
 
     public function allBookings(): void
     {
         try {
-            $payload = (new AuthMiddleware())->requireAuth('admin');
-            $bookings = (new BookingRepository())->getAll();
+            (new AuthMiddleware())->requireAuth('admin');
+            $bookings = $this->bookingRepo->getAll();
 
-            echo json_encode(array_map(fn($b) => [
-                'id' => $b->id,
-                'userId' => $b->userId,
-                'deskId' => $b->deskId,
-                'start' => $b->startTime->format('Y-m-d H:i:s'),
-                'end' => $b->endTime?->format('Y-m-d H:i:s'),
+            $response = array_map(fn($b) => [
+                'id'       => $b->id,
+                'userId'   => $b->userId,
+                'deskId'   => $b->deskId,
+                'start'    => $b->startTime->format('Y-m-d H:i:s'),
+                'end'      => $b->endTime?->format('Y-m-d H:i:s'),
                 'checkout' => $b->checkoutTime?->format('Y-m-d H:i:s'),
-            ], $bookings));
-        } catch (\Exception $e) {
-            http_response_code(403);
-            echo json_encode(['error' => $e->getMessage()]);
+            ], $bookings);
+
+            JsonResponse::success($response);
+        } catch (Exception $e) {
+            JsonResponse::error($e->getMessage(), 403);
         }
     }
-
 
     public function getActiveBooking(int $userId): void
     {
         try {
-            $booking = (new BookingRepository())->getLatestBookingByUser($userId);
+            $booking = $this->bookingRepo->getLatestBookingByUser($userId);
 
             if (!$booking || $booking->checkoutTime !== null) {
-                http_response_code(404);
-                echo json_encode(['error' => 'No active booking']);
+                JsonResponse::error('No active booking', 404);
                 return;
             }
 
-            echo json_encode([
-                'deskId' => $booking->deskId,
-                'startTime' => $booking->startTime->format('Y-m-d H:i:s'),
-                'endTime' => $booking->endTime?->format('Y-m-d H:i:s'),
-                'checkoutTime' => $booking->checkoutTime?->format('Y-m-d H:i:s'),
+            JsonResponse::success([
+                'deskId'        => $booking->deskId,
+                'startTime'     => $booking->startTime->format('Y-m-d H:i:s'),
+                'endTime'       => $booking->endTime?->format('Y-m-d H:i:s'),
+                'checkoutTime'  => $booking->checkoutTime?->format('Y-m-d H:i:s'),
             ]);
         } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            JsonResponse::error($e->getMessage(), 500);
         }
     }
 }

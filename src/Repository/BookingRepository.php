@@ -2,13 +2,13 @@
 
 namespace App\Repository;
 
+use App\Contract\BookingRepositoryInterface;
 use App\Model\Booking;
 use App\Database\Database;
 use DateTime;
 use PDO;
-use Exception;
 
-class BookingRepository
+class BookingRepository implements BookingRepositoryInterface
 {
     public function createBooking(int $userId, int $deskId, DateTime $start, ?DateTime $end = null): void
     {
