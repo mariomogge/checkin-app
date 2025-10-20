@@ -50,7 +50,7 @@ docker compose up --build
 
 ### 3. 📦 Frontend installieren & starten
 ```bash
-cd frontend
+cd checkin-frontend
 npm install
 npm run dev
 ```
