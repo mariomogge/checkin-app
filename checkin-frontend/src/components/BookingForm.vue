@@ -1,112 +1,57 @@
 <template>
-  <div class="booking-form">
-    <h3>Arbeitsplatz buchen</h3>
+  <div>
+    <select v-model="selectedDeskId">
+      <option disabled value="">Wähle Arbeitsplatz</option>
+      <option v-for="desk in desks" :key="desk.id" :value="desk.id">
+        {{ desk.location }}
+      </option>
+    </select>
 
-    <div v-if="loading">Lade verfügbare Plätze...</div>
-
-    <div v-else>
-      <label for="desk-select">Platz auswählen:</label>
-      <select v-model="selectedDeskId" id="desk-select">
-        <option disabled value="">-- Bitte auswählen --</option>
-        <option v-for="desk in desks" :key="desk.id" :value="desk.id">
-          {{ desk.location }}
-        </option>
-      </select>
-
-      <button @click="bookDesk" :disabled="!selectedDeskId">Buchen</button>
-    </div>
-
-    <p v-if="message" :class="{ error: isError, success: !isError }">
-      {{ message }}
-    </p>
+    <button @click="bookDesk">Buchen</button>
+    <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="success" class="success">{{ success }}</p>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
 import { useAuthStore } from '../store/auth'
-
-const desks = ref([])
-const selectedDeskId = ref('')
-const loading = ref(false)
-const message = ref('')
-const isError = ref(false)
+import api from '../api/api'
 
 const auth = useAuthStore()
+const desks = ref([])
+const selectedDeskId = ref('')
+const error = ref('')
+const success = ref('')
 
-const fetchDesks = async () => {
-  loading.value = true
+const loadDesks = async () => {
   try {
-    const res = await axios.get('http://localhost:8080/desks/available')
+    const res = await api.getDesks()
     desks.value = res.data
   } catch (e) {
-    message.value = 'Fehler beim Laden der Plätze.'
-    isError.value = true
-  } finally {
-    loading.value = false
+    error.value = 'Fehler beim Laden der Arbeitsplätze'
   }
 }
 
 const bookDesk = async () => {
-  message.value = ''
-  isError.value = false
+  error.value = ''
+  success.value = ''
   try {
-    await axios.post('http://localhost:8080/book', {
-      userId: auth.userId,
-      deskId: selectedDeskId.value
-    })
-    message.value = 'Platz erfolgreich gebucht!'
+    await api.book(auth.userId, selectedDeskId.value)
+    success.value = 'Buchung erfolgreich!'
   } catch (e) {
-    isError.value = true
-    message.value = e.response?.data?.error || 'Buchung fehlgeschlagen'
+    error.value = e.response?.data?.error || 'Buchung fehlgeschlagen'
   }
 }
 
-onMounted(fetchDesks)
+onMounted(loadDesks)
 </script>
 
 <style scoped>
-.booking-form {
-  padding: 1rem;
-  background: #1f1f1f;
-  color: #fff;
-  border-radius: 6px;
-}
-
-select,
-button {
-  margin-top: 0.5rem;
-  padding: 0.4rem 0.6rem;
-  border-radius: 4px;
-  border: none;
-  font-size: 1rem;
-}
-
-select {
-  background-color: #333;
-  color: #fff;
-}
-
-button {
-  background-color: #cbff00;
-  color: #000;
-  cursor: pointer;
-  margin-left: 0.5rem;
-}
-
-button:disabled {
-  background-color: #888;
-  cursor: not-allowed;
-}
-
-.success {
-  color: #cbff00;
-  margin-top: 0.5rem;
-}
-
 .error {
   color: #cd5c5c;
-  margin-top: 0.5rem;
+}
+.success {
+  color: #cbff00;
 }
 </style>
