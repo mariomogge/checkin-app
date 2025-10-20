@@ -17,16 +17,18 @@ use Exception;
 class WorkspaceController
 {
     public function __construct(
+        private BookingRepository $bookingRepo = new BookingRepository(),
+        private DeskRepository $deskRepo = new DeskRepository(),
+        private ?DeskBookingService $bookingService = null,
         private CheckInService $checkInService = new CheckInService(),
         private CheckOutService $checkOutService = new CheckOutService(),
-        private DeskBookingService $bookingService = new DeskBookingService(
-            new BookingRepository(),
-            new DeskRepository()
-        ),
-        private DeskRepository $deskRepo = new DeskRepository(),
-        private BookingRepository $bookingRepo = new BookingRepository(),
         private AuthService $authService = new AuthService()
     ) {
+        $this->bookingService = $this->bookingService ?? new DeskBookingService(
+            $this->bookingRepo,
+            $this->deskRepo
+        );
+
         header('Content-Type: application/json');
     }
 
