@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { useAuthStore } from '../store/auth'
 
 const instance = axios.create({
   baseURL: 'http://localhost:8080',
@@ -9,20 +8,20 @@ const instance = axios.create({
 })
 
 instance.interceptors.request.use(config => {
-  const auth = useAuthStore()
-  if (auth.token) {
-    config.headers.Authorization = `Bearer ${auth.token}`
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
 export default {
   login: (name, password) => instance.post('/login', { name, password }),
-  checkIn: userId => instance.post('/checkin', { userId }),
-  checkOut: userId => instance.post('/checkout', { userId }),
+  checkIn: userId => instance.post('/check-in', { userId }),
+  checkOut: userId => instance.post('/check-out', { userId }),
   book: (userId, deskId) => instance.post('/book', { userId, deskId }),
   getDesks: () => instance.get('/desks'),
   getUser: (id) => instance.get(`/user/${id}`),
   getAdminBookings: () => instance.get('/admin/bookings'),
-  getActiveBooking: userId => instance.get(`/booking/active/${userId}`)
+  getActiveBooking: userId => instance.get(`/bookings/active/${userId}`)
 }
