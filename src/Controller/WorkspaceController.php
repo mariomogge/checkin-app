@@ -46,6 +46,29 @@ class WorkspaceController
         }
     }
 
+    public function getUser(int $userId): void
+    {
+        try {
+            $userService = new UserService();
+            $lastCheckIn = $userService->getLastCheckIn($userId);
+            $user = $userService->getUserById($userId);
+
+            if (!$user) {
+                JsonResponse::error('User not found', 404);
+                return;
+            }
+
+            JsonResponse::success([
+                'id' => $user->id,
+                'name' => $user->name,
+                'role' => $user->role,
+                'lastCheckIn' => $lastCheckIn?->format('Y-m-d H:i:s')
+            ]);
+        } catch (Exception $e) {
+            JsonResponse::error($e->getMessage(), 500);
+        }
+    }
+
     public function checkIn(): void
     {
         $data = Request::json();
@@ -81,7 +104,6 @@ class WorkspaceController
             JsonResponse::error($e->getMessage(), 400);
         }
     }
-
 
     public function book(): void
     {

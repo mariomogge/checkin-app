@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Model\User;
 use App\Database\Database;
 use PDO;
+use DateTime;
 
 class UserRepository
 {
@@ -25,7 +26,6 @@ class UserRepository
         $stmt->execute(['id' => $userId]);
     }
 
-
     public function findByName(string $name): ?User
     {
         $stmt = Database::getConnection()->prepare("SELECT * FROM users WHERE name = ?");
@@ -41,5 +41,21 @@ class UserRepository
             $row['password'] ?? null,
             $row['role'] ?? 'user'
         );
+    }
+
+    public function getLastCheckIn(int $userId): ?DateTime
+    {
+        $stmt = Database::getConnection()->prepare("
+        SELECT start_time 
+        FROM bookings 
+        WHERE user_id = :userId 
+          AND checkout_time IS NULL 
+        ORDER BY start_time DESC 
+        LIMIT 1
+    ");
+        $stmt->execute(['userId' => $userId]);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? new DateTime($row['start_time']) : null;
     }
 }

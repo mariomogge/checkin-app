@@ -20,11 +20,13 @@ $router = new Router();
 $controller = new WorkspaceController();
 
 $router->post('/login', [$controller, 'login']);
+$router->get('/user/:userId', [$controller, 'getUser']);
 $router->post('/check-in', [$controller, 'checkIn']);
 $router->post('/check-out', [$controller, 'checkOut']);
 $router->post('/book', [$controller, 'book']);
 $router->get('/desks', [$controller, 'availableDesks']);
 $router->get('/bookings/active/:userId', [$controller, 'getActiveBooking']);
+$router->get('/admin/bookings/', [$controller, 'allBookings']);
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];

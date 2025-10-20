@@ -33,7 +33,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
-import { useAuthStore } from '../store/auth'
+import { useAuthStore } from '../../store/auth'
 
 const auth = useAuthStore()
 const bookings = ref([])

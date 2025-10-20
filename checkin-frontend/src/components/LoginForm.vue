@@ -9,6 +9,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../store/auth'
+import api from '../api/api'
 import { useRouter } from 'vue-router'
 
 const name = ref('')
@@ -18,10 +19,12 @@ const router = useRouter()
 
 const login = async () => {
   try {
-    await auth.login(name.value, password.value)
-    router.push(auth.role === 'admin' ? '/admin' : '/dashboard')
+    const response = await api.login(name.value, password.value)
+    auth.setToken(response.data.token)
+    router.push('/dashboard')
   } catch (e) {
-    alert('Login failed')
+    e.value = 'Login fehlgeschlagen'
+    console.error(e)
   }
 }
 </script>

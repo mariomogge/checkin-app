@@ -4,13 +4,16 @@ namespace App\Service;
 
 use App\Contract\UserServiceInterface;
 use App\Repository\BookingRepository;
-use DateTime;
+use App\Repository\UserRepository;
+use App\Model\User;
 use Exception;
+use DateTime;
 
 class UserService implements UserServiceInterface
 {
     public function __construct(
-        private BookingRepository $bookingRepo = new BookingRepository()
+        private BookingRepository $bookingRepo = new BookingRepository(),
+        private UserRepository $userRepo = new UserRepository()
     ) {}
 
     public function checkIn(int $userId): void
@@ -31,5 +34,15 @@ class UserService implements UserServiceInterface
         }
 
         $this->bookingRepo->setCheckoutTime($booking->id);
+    }
+
+    public function getLastCheckIn(int $userId): ?DateTime
+    {
+        return $this->userRepo->getLastCheckIn($userId);
+    }
+
+    public function getUserById(int $userId): ?User 
+    {
+        return $this->userRepo->findById($userId);
     }
 }
